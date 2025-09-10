@@ -1,0 +1,70 @@
+import os import pandas as pd import chess.pgn nano 
+~/Desktop/chess-analyzer/src/parse_pgns.py RAW_DIR = 
+os.path.join(os.path.dirname(__file__), "..", "data", "raw_pgns") PROC_DIR 
+= os.path.join(os.path.dirname(__file__), "..", "data", "processed")
+
+def parse_pgns(): pip uninstall -y python-chess chess games_summary = [] 
+pip install chess==1.10.0 games_moves = [] cat > src/import_games.py << 
+'EOF' import os for fname in os.listdir(RAW_DIR): import requests if not 
+fname.endswith(".pgn"): import yaml continue from tqdm import tqdm with 
+open(os.path.join(RAW_DIR, fname), "r", encoding="utf-8") as f:
+            while True: RAW_DIR = os.path.join(os.path.dirname(__file__), 
+"..", "data", "raw_pgns")  game = chess.pgn.read_game(f) CONFIG_FILE = 
+os.path.join(os.path.dirname(__file__), "..", "config.yaml")  if game is 
+None:
+                    break with open(CONFIG_FILE, "r") as f:
+    config = yaml.safe_load(f)  board = game.board() USERNAME = 
+config["username"].lower()  headers = game.headers
+                moves = list(game.mainline_moves()) def 
+download_all_games():
+    os.makedirs(RAW_DIR, exist_ok=True)  # Game-level metadata base_url = 
+    f"https://api.chess.com/pub/player/{USERNAME}/games/archives"  
+    summary_row = {
+                    "Event": headers.get("Event"), "Date": 
+                    headers.get("UTCDate"), "UTC_Time": 
+                    headers.get("UTCTime"), "TimeControl": 
+                    headers.get("TimeControl"), "Result": 
+                    headers.get("Result"), "White": headers.get("White"), 
+                    "Black": headers.get("Black"), "WhiteElo": 
+                    headers.get("WhiteElo"), "BlackElo": 
+                    headers.get("BlackElo"), "ECO": headers.get("ECO"), 
+                    "Opening": headers.get("Opening"), "TotalMoves": 
+                    len(moves),
+    print(f"♟ Downloading games for {USERNAME}...")  }
+
+                games_summary.append(summary_row)
+    # Get archive URLs (monthly buckets) r = requests.get(base_url)  # 
+    Move-level metadata r.raise_for_status()  for i, move in 
+    enumerate(moves, 1): archives = r.json()["archives"] san = 
+    board.san(move)  # ✅ get SAN before pushing
+                    board.push(move) games_moves.append({
+    for url in tqdm(archives, desc="Downloading archives"):  "GameID": 
+len(games_summary),
+        year, month = url.split("/")[-2:] "MoveNumber": i, out_path = 
+        os.path.join(RAW_DIR, f"{USERNAME}_{year}_{month}.pgn")  "Move": 
+        san,
+                        "FEN": board.fen(),
+        if os.path.exists(out_path):
+            continue  # skip already downloaded
+
+        resp = requests.get(url + "/pgn")
+        resp.raise_for_status()
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(resp.text)
+
+    print(f"✅ Finished downloading games into {RAW_DIR}")
+
+if __name__ == "__main__":
+    download_all_games()
+EOF
+                    })
+
+    # Save CSVs
+    summary_df = pd.DataFrame(games_summary)
+    moves_df = pd.DataFrame(games_moves)
+
+    summary_df.to_csv(os.path.join(PROC_DIR, "games_summary_raw.csv"), index=False)
+    moves_df.to_csv(os.path.join(PROC_DIR, "games_moves_raw.csv"), index=False)
+
+if __name__ == "__main__":
+    parse_pgns()

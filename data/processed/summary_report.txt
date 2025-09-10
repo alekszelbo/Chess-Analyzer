@@ -1,0 +1,19 @@
+♟ Chess Analyzer Report for alekscottz
+==================================================
+
+Total games: 7162
+
+Win: 3616
+Loss: 3246
+Draw: 300
+Overall winrate: 50.5%
+
+Performance by Time Control:
+  Blitz: 49.5% over 5367 games
+  Bullet: 50.3% over 1576 games
+  Daily: 76.7% over 206 games
+  Rapid: 84.6% over 13 games
+
+Average game length: 60.4 moves
+
+Top 5 Openings:
